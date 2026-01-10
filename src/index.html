@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="km">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ប្រព័ន្ធកត់ចំណងដៃ - Wedding List Management</title>
+    <link rel="stylesheet" href="./CSS/styles.css" />
+    <link rel="stylesheet" href="./CSS/alert.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nokora:wght@300;400;700;900&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Header Section -->
+    <header class="header">
+      <div class="header-content">
+        <div class="header-left">
+          <i class="fas fa-heart header-icon"></i>
+          <div class="header-text">
+            <h1 class="app-title">ប្រព័ន្ធកត់ចំណងដៃ</h1>
+            <p class="app-subtitle">Wedding List Management System</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <button
+            class="btn btn-outline btn-qr-code"
+            id="showPaymentQRBtn"
+            title="បង្ហាញ QR កូដបង់ប្រាក់"
+          >
+            <i class="fas fa-qrcode"></i>
+            QR កូដ
+          </button>
+          <button
+            class="btn btn-outline toggle-wedding-info"
+            id="toggleWeddingInfo"
+          >
+            <i class="fas fa-heart"></i>
+            ព័ត៌មានអាពាហ៍ពិពាហ៍
+          </button>
+          <div class="current-date">
+            <i class="fas fa-calendar-alt"></i>
+            <span id="currentDate"></span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Wedding Information Section -->
+    <section class="wedding-info">
+      <div class="wedding-info-container">
+        <div class="wedding-info-header">
+          <div class="wedding-info-icon">
+            <i class="fas fa-heart"></i>
+          </div>
+          <div class="wedding-info-title">
+            <h2 class="section-title">ព័ត៌មានអាពាហ៍ពិពាហ៍</h2>
+            <p class="section-subtitle">Wedding Information</p>
+          </div>
+        </div>
+
+        <div class="wedding-details-card">
+          <div class="wedding-details-table">
+            <table class="wedding-info-table">
+              <tbody>
+                <tr class="wedding-couple-row">
+                  <td class="info-label">
+                    <i class="fas fa-male"></i>
+                    ឈ្មោះកូនកំលោះ
+                    <small>Groom's Name</small>
+                  </td>
+                  <td class="info-value" id="groomName">
+                    <input
+                      type="text"
+                      class="info-input"
+                      placeholder="បញ្ចូលឈ្មោះកូនកំលោះ..."
+                    />
+                  </td>
+                  <td class="info-label">
+                    <i class="fas fa-female"></i>
+                    ឈ្មោះកូនក្រមុំ
+                    <small>Bride's Name</small>
+                  </td>
+                  <td class="info-value" id="brideName">
+                    <input
+                      type="text"
+                      class="info-input"
+                      placeholder="បញ្ចូលឈ្មោះកូនក្រមុំ..."
+                    />
+                  </td>
+                </tr>
+
+                <tr class="wedding-parents-row">
+                  <td class="info-label">
+                    <i class="fas fa-user-tie"></i>
+                    ឪពុកកូនកំលោះ
+                    <small>Groom's Father</small>
+                  </td>
+                  <td class="info-value">
+                    <input
+                      type="text"
+                      class="info-input"
+                      placeholder="ឈ្មោះឪពុកកូនកំលោះ..."
+                    />
+                  </td>
+                  <td class="info-label">
+                    <i class="fas fa-user-tie"></i>
+                    ឪពុកកូនក្រមុំ
+                    <small>Bride's Father</small>
+                  </td>
+                  <td class="info-value">
+                    <input
+                      type="text"
+                      class="info-input"
+                      placeholder="ឈ្មោះឪពុកកូនក្រមុំ..."
+                    />
+                  </td>
+                </tr>
+
+                <tr class="wedding-parents-row">
+                  <td class="info-label">
+                    <i class="fas fa-user-tie"></i>
+                    ម្តាយកូនកំលោះ
+                    <small>Groom's Mother</small>
+                  </td>
+                  <td class="info-value">
+                    <input
+                      type="text"
+                      class="info-input"
+                      placeholder="ឈ្មោះម្តាយកូនកំលោះ..."
+                    />
+                  </td>
+                  <td class="info-label">
+                    <i class="fas fa-user-tie"></i>
+                    ម្តាយកូនក្រមុំ
+                    <small>Bride's Mother</small>
+                  </td>
+                  <td class="info-value">
+                    <input
+                      type="text"
+                      class="info-input"
+                      placeholder="ឈ្មោះម្តាយកូនក្រមុំ..."
+                    />
+                  </td>
+                </tr>
+
+                <tr class="wedding-date-row">
+                  <td class="info-label">
+                    <i class="fas fa-calendar-day"></i>
+                    កាលបរិច្ឆេទ
+                    <small>Wedding Date</small>
+                  </td>
+                  <td class="info-value">
+                    <input type="date" class="info-input" />
+                  </td>
+                  <td class="info-label">
+                    <i class="fas fa-clock"></i>
+                    ម៉ោង
+                    <small>Wedding Time</small>
+                  </td>
+                  <td class="info-value">
+                    <input type="time" class="info-input" />
+                  </td>
+                </tr>
+
+                <tr class="wedding-location-row">
+                  <td class="info-label">
+                    <i class="fas fa-map-marker-alt"></i>
+                    ទីតាំងពិធី
+                    <small>Wedding Location</small>
+                  </td>
+                  <td class="info-value" colspan="3">
+                    <input
+                      type="text"
+                      class="info-input location-input"
+                      placeholder="បញ្ចូលទីតាំងពិធីអាពាហ៍ពិពាហ៍..."
+                    />
+                  </td>
+                </tr>
+
+                <tr class="wedding-coords-row">
+                  <td class="info-label">
+                    <i class="fas fa-globe"></i>
+                    Google Maps
+                    <small>Coordinates</small>
+                  </td>
+                  <td class="info-value">
+                    <input
+                      type="text"
+                      class="info-input coords-input"
+                      placeholder="Latitude"
+                    />
+                  </td>
+                  <td class="info-label coords-label">
+                    <i class="fas fa-crosshairs"></i>
+                    Longitude
+                  </td>
+                  <td class="info-value">
+                    <input
+                      type="text"
+                      class="info-input coords-input"
+                      placeholder="Longitude"
+                    />
+                  </td>
+                </tr>
+
+                <tr class="wedding-invitation-row">
+                  <td class="info-label">
+                    <i class="fas fa-envelope-open-text"></i>
+                    សារអញ្ជើញ
+                    <small>Invitation Message</small>
+                  </td>
+                  <td class="info-value" colspan="3">
+                    <textarea
+                      class="info-input invitation-input"
+                      rows="3"
+                      placeholder="សរសេរសារអញ្ជើញ (ស្រេចចិត្ត)..."
+                    ></textarea>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="wedding-actions">
+            <button class="btn btn-primary save-wedding-info">
+              <i class="fas fa-save"></i>
+              រក្សាទុកព័ត៌មាន
+            </button>
+            <button class="btn btn-secondary view-map">
+              <i class="fas fa-map"></i>
+              មើលផែនទី
+            </button>
+            <button class="btn btn-secondary preview-invitation">
+              <i class="fas fa-eye"></i>
+              មើលសារអញ្ជើញ
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section class="dashboard">
+      <div class="dashboard-container">
+        <div class="dashboard-card total-guests">
+          <div class="card-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">ចំនួនភ្ញៀវ</h3>
+            <p class="card-subtitle">Total Guests</p>
+            <div class="card-value" id="totalGuests">0</div>
+          </div>
+        </div>
+
+        <div class="dashboard-card total-khr">
+          <div class="card-icon">
+            <i class="fas fa-money-bill-wave"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">ចំនួនប្រាក់រៀល</h3>
+            <p class="card-subtitle">Total KHR Amount</p>
+            <div class="card-value khr-amount" id="totalKHR">0 ៛</div>
+          </div>
+        </div>
+
+        <div class="dashboard-card total-usd">
+          <div class="card-icon">
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">ចំនួនប្រាក់ដុល្លារ</h3>
+            <p class="card-subtitle">Total USD Amount</p>
+            <div class="card-value usd-amount" id="totalUSD">$0</div>
+          </div>
+        </div>
+
+        <div class="dashboard-card cash-summary">
+          <div class="card-icon">
+            <i class="fas fa-hand-holding-usd"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">ប្រាក់សរុប</h3>
+            <p class="card-subtitle">Cash Summary</p>
+            <div class="card-value mixed-amount" id="cashSummary">
+              <div class="amount-khr">0 ៛</div>
+              <div class="amount-usd">+ $0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls Section -->
+    <section class="controls">
+      <div class="controls-container">
+        <div class="controls-left">
+          <button class="btn btn-primary" id="addGuestBtn">
+            <i class="fas fa-plus"></i>
+            បន្ថែមភ្ញៀវ
+          </button>
+          <button class="btn btn-outline" id="manageInvitationGuestsBtn">
+            <i class="fas fa-address-book"></i>
+            បញ្ជីភ្ញៀវអញ្ជើញ
+          </button>
+          <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="ស្វែងរកមៀហ្មាន... Search guests..."
+            />
+          </div>
+        </div>
+        <div class="controls-right">
+          <button class="btn btn-secondary" id="exportExcelBtn">
+            <i class="fas fa-file-excel"></i>
+            Export Excel
+          </button>
+          <button class="btn btn-secondary" id="exportPdfBtn">
+            <i class="fas fa-file-pdf"></i>
+            Export PDF
+          </button>
+          <button class="btn btn-secondary" id="printBtn">
+            <i class="fas fa-print"></i>
+            Print
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Table Section -->
+    <section class="table-section">
+      <div class="table-container">
+        <table class="guests-table" id="guestsTable">
+          <thead>
+            <tr>
+              <th class="col-index">#</th>
+              <th class="col-name">
+                ឈ្មោះភ្ញៀវ<br /><small>Guest Name</small>
+              </th>
+              <th class="col-phone">លេខទូរស័ព្ទ<br /><small>Phone</small></th>
+              <th class="col-note">កំណត់ចំណាំ<br /><small>Note</small></th>
+              <th class="col-amount">
+                ចំនួនប្រាក់<br /><small>Amount (KHR / USD)</small>
+              </th>
+              <th class="col-payment">
+                ប្រភេទការបង់<br /><small>Payment Type</small>
+              </th>
+              <th class="col-actions">ការកំណត់<br /><small>Actions</small></th>
+            </tr>
+          </thead>
+          <tbody id="guestsTableBody">
+            <!-- Table rows will be populated by JavaScript -->
+          </tbody>
+        </table>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">
+            <i class="fas fa-users-slash"></i>
+          </div>
+          <h3>មិនទានមៀហ្មានណាមួយទេ</h3>
+          <p>No guests found. Click "Add Guest" to get started.</p>
+          <button class="btn btn-primary" onclick="openGuestModal()">
+            <i class="fas fa-plus"></i>
+            បន្ថែមភ្ញៀវដំបូង
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Guest Modal -->
+    <div class="modal" id="guestModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">បន្ថែមភ្ញៀវថ្មី</h2>
+          <button class="modal-close" onclick="closeGuestModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="guestForm" class="modal-body">
+          <div class="form-group">
+            <label for="guestName">
+              <i class="fas fa-user"></i>
+              ឈ្មោះភ្ញៀវ * / Guest Name (Search from invitation or type
+              manually)
+            </label>
+            <div class="autocomplete-wrapper">
+              <input
+                type="text"
+                id="guestName"
+                name="name"
+                required
+                placeholder="វាយឈ្មោះឬលេខទូរស័ព្ទ / Type name or phone..."
+                autocomplete="off"
+              />
+              <div
+                class="invitation-suggestions"
+                id="invitationSuggestions"
+              ></div>
+            </div>
+            <input type="hidden" id="selectedInvitationGuestId" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="guestNameKm">
+                <i class="fas fa-language"></i>
+                ឈ្មោះជាខ្មែរ / Khmer Name
+              </label>
+              <input
+                type="text"
+                id="guestNameKm"
+                name="name_km"
+                placeholder="ឈ្មោះជាភាសាខ្មែរ..."
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-group">
+              <label for="guestPhone">លេខទូរស័ព្ទ</label>
+              <input
+                type="tel"
+                id="guestPhone"
+                name="phone"
+                placeholder="012 345 678"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="guestNote">កំណត់ចំណាំ</label>
+            <textarea
+              id="guestNote"
+              name="note"
+              rows="3"
+              placeholder="កំណត់ចំណាំបន្ថែម..."
+            ></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="guestAmount">ចំនួនប្រាក់ *</label>
+              <input
+                type="number"
+                id="guestAmount"
+                name="amount"
+                step="0.01"
+                min="0"
+                required
+                placeholder="0.00"
+              />
+            </div>
+            <div class="form-group">
+              <label for="guestCurrency">រូបិយប័ណ្ណ</label>
+              <select id="guestCurrency" name="currency">
+                <option value="KHR">៛ រៀល</option>
+                <option value="USD">$ ដុល្លារ</option>
+              </select>
+              <small class="form-help">អត្រាប្តូរប្រាក់: 1$ = 4,000៛</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="guestPaymentType">ប្រភេទការបង់</label>
+            <div class="payment-type-group">
+              <label class="radio-label">
+                <input type="radio" name="payment_type" value="CASH" checked />
+                <span class="payment-badge cash">ក្រដាសប្រាក់</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="payment_type" value="ABA" />
+                <span class="payment-badge aba">ABA</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="payment_type" value="AC" />
+                <span class="payment-badge ac">AC</span>
+              </label>
+            </div>
+          </div>
+        </form>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="closeGuestModal()"
+          >
+            បោះបង់
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            form="guestForm"
+            id="saveGuestBtn"
+          >
+            <i class="fas fa-save"></i>
+            រក្សាទុក
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner">
+        <i class="fas fa-heart fa-beat"></i>
+        <p>Loading...</p>
+      </div>
+    </div>
+
+    <!-- Payment QR Code Modal -->
+    <div class="modal qr-modal" id="paymentQRModal">
+      <div class="modal-content qr-modal-content">
+        <div class="modal-header qr-modal-header">
+          <div class="qr-header-content">
+            <i class="fas fa-qrcode qr-header-icon"></i>
+            <div>
+              <h2>QR កូដបង់ប្រាក់</h2>
+              <p class="qr-subtitle">Payment QR Code</p>
+            </div>
+          </div>
+          <button class="modal-close" onclick="closePaymentQRModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body qr-modal-body">
+          <!-- QR Code Display -->
+          <div class="qr-display-container" id="qrDisplayContainer">
+            <div class="qr-empty-state" id="qrEmptyState">
+              <div class="qr-empty-icon">
+                <i class="fas fa-qrcode"></i>
+              </div>
+              <h3>មិនទាន់មាន QR កូដ</h3>
+              <p>No QR Code Available</p>
+              <p class="qr-empty-hint">
+                សូមបង្ហោះរូបភាព QR កូដរបស់អ្នកដើម្បីឱ្យភ្ញៀវអាចបង់ប្រាក់តាមរយៈ
+                QR
+              </p>
+            </div>
+
+            <div
+              class="qr-code-display"
+              id="qrCodeDisplay"
+              style="display: none"
+            >
+              <div class="qr-image-wrapper">
+                <img id="qrCodeImage" src="" alt="Payment QR Code" />
+                <div class="qr-scan-overlay">
+                  <div class="qr-scan-line"></div>
+                </div>
+              </div>
+              <div class="qr-info">
+                <i class="fas fa-info-circle"></i>
+                <span>ស្កែន QR កូដនេះដើម្បីបង់ប្រាក់</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Section -->
+          <div class="qr-upload-section">
+            <input
+              type="file"
+              id="qrCodeInput"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              style="display: none"
+            />
+            <div class="qr-upload-actions">
+              <button class="btn btn-primary btn-upload-qr" id="uploadQRBtn">
+                <i class="fas fa-upload"></i>
+                <span id="uploadQRBtnText">បង្ហោះ QR កូដ</span>
+              </button>
+              <button
+                class="btn btn-outline btn-remove-qr"
+                id="removeQRBtn"
+                style="display: none"
+              >
+                <i class="fas fa-trash-alt"></i>
+                លុបចេញ
+              </button>
+            </div>
+            <p class="qr-upload-hint">
+              <i class="fas fa-image"></i>
+              រូបភាពត្រូវតែជា PNG, JPEG ឬ WebP (ទំហំអតិបរមា: 5MB)
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invitation Guests Management Modal -->
+    <div class="modal invitation-modal" id="invitationGuestsModal">
+      <div class="modal-content invitation-modal-content">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <i class="fas fa-address-book modal-icon"></i>
+            <div>
+              <h2>គ្រប់គ្រងបញ្ជីភ្ញៀវអញ្ជើញ</h2>
+              <p class="modal-subtitle">Manage Invitation Guests</p>
+            </div>
+          </div>
+          <button class="modal-close" onclick="closeInvitationGuestsModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body invitation-modal-body">
+          <!-- Stats Cards -->
+          <div class="invitation-stats">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="totalInvitationGuests">0</div>
+                <div class="stat-label">សរុប / Total</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon imported">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="importedGuests">0</div>
+                <div class="stat-label">បានបញ្ចូល / Imported</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon pending">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="pendingGuests">0</div>
+                <div class="stat-label">រង់ចាំ / Pending</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload CSV Section -->
+          <div class="csv-upload-section">
+            <div class="csv-upload-card">
+              <div class="csv-upload-icon">
+                <i class="fas fa-file-csv"></i>
+              </div>
+              <h3>បង្ហោះឯកសារ CSV</h3>
+              <p class="csv-help-text">
+                Upload CSV file with columns: Name, Phone, Email, Address,
+                Group, Note
+              </p>
+              <input
+                type="file"
+                id="csvFileInput"
+                accept=".csv"
+                style="display: none"
+              />
+              <button class="btn btn-primary btn-upload-csv" id="uploadCSVBtn">
+                <i class="fas fa-upload"></i>
+                ជ្រើសរើសឯកសារ CSV
+              </button>
+              <div class="csv-format-info">
+                <button class="btn-link" id="downloadTemplateBtn">
+                  <i class="fas fa-download"></i>
+                  ទាញយកគំរូ CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- CSV Preview -->
+            <div class="csv-preview" id="csvPreview" style="display: none">
+              <div class="csv-preview-header">
+                <h4>
+                  <i class="fas fa-eye"></i>
+                  មើលជាមុន CSV Preview
+                </h4>
+                <span class="csv-row-count" id="csvRowCount">0 rows</span>
+              </div>
+              <div class="csv-preview-table-wrapper">
+                <table class="csv-preview-table" id="csvPreviewTable">
+                  <!-- Preview table content -->
+                </table>
+              </div>
+              <div class="csv-preview-actions">
+                <button class="btn btn-secondary" id="cancelCSVBtn">
+                  <i class="fas fa-times"></i>
+                  បោះបង់
+                </button>
+                <button class="btn btn-primary" id="importCSVBtn">
+                  <i class="fas fa-file-import"></i>
+                  នាំចូលទិន្នន័យ
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Search and Filter -->
+          <div class="invitation-controls">
+            <div class="invitation-search">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                id="invitationSearchInput"
+                placeholder="ស្វែងរកភ្ញៀវ... Search guests..."
+              />
+            </div>
+            <div class="invitation-filters">
+              <select id="groupFilterSelect" class="filter-select">
+                <option value="">ក្រុមទាំងអស់ / All Groups</option>
+              </select>
+              <select id="importedFilterSelect" class="filter-select">
+                <option value="">ស្ថានភាពទាំងអស់ / All Status</option>
+                <option value="0">រង់ចាំ / Pending</option>
+                <option value="1">បានបញ្ចូល / Imported</option>
+              </select>
+            </div>
+            <button
+              class="btn btn-outline btn-clear-all"
+              id="clearAllInvitationGuestsBtn"
+            >
+              <i class="fas fa-trash-alt"></i>
+              លុបទាំងអស់
+            </button>
+          </div>
+
+          <!-- Guests List -->
+          <div class="invitation-guests-list">
+            <div class="invitation-table-wrapper">
+              <table class="invitation-table" id="invitationTable">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox">
+                      <input type="checkbox" id="selectAllInvitation" />
+                    </th>
+                    <th>ឈ្មោះ / Name</th>
+                    <th>លេខទូរស័ព្ទ / Phone</th>
+                    <th>អ៊ីមែល / Email</th>
+                    <th>អាសយដ្ឋាន / Address</th>
+                    <th>ក្រុម / Group</th>
+                    <th>ស្ថានភាព / Status</th>
+                    <th>សកម្មភាព / Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="invitationTableBody">
+                  <!-- Table rows populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Empty State -->
+            <div
+              class="invitation-empty-state"
+              id="invitationEmptyState"
+              style="display: none"
+            >
+              <div class="empty-icon">
+                <i class="fas fa-address-book"></i>
+              </div>
+              <h3>មិនទានបញ្ជីភ្ញៀវទេ</h3>
+              <p>Upload a CSV file to import your invitation guests list</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="export.js"></script>
+  </body>
+</html>

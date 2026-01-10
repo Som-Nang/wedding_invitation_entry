@@ -1,0 +1,55 @@
+{
+    "name": "wedding-list-management",
+    "version": "1.0.0",
+    "description": "ប្រព័ន្ធកត់ចំណងដៃ - Wedding List Management System",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "dev": "electron . --dev",
+        "build": "electron-builder",
+        "build-win": "electron-builder --win",
+        "dist": "electron-builder --publish=never",
+        "postinstall": "electron-builder install-app-deps"
+    },
+    "author": "Wedding Manager",
+    "license": "MIT",
+    "devDependencies": {
+        "electron": "^28.2.0",
+        "electron-builder": "^24.9.1",
+        "electron-rebuild": "^3.2.9"
+    },
+    "dependencies": {
+        "sqlite3": "^5.1.6",
+        "xlsx": "^0.18.5"
+    },
+    "build": {
+        "appId": "com.wedding.listmanagement",
+        "productName": "Wedding List Management",
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "**/*",
+            "!node_modules/**/*",
+            "node_modules/sqlite3/**/*",
+            "node_modules/xlsx/**/*"
+        ],
+        "win": {
+            "target": "nsis",
+            "icon": "assets/icon.ico",
+            "sign": null
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "installerIcon": "assets/icon.ico",
+            "uninstallerIcon": "assets/icon.ico",
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true
+        },
+        "asarUnpack": [
+            "node_modules/sqlite3/**/*"
+        ],
+        "npmRebuild": true
+    }
+}
