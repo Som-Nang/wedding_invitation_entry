@@ -1,8 +1,8 @@
-const sqlite3 = require("sqlite3").verbose();
+const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
 
-class Database {
+class DatabaseManager {
   constructor() {
     // Ensure database directory exists
     const dbDir = path.join(__dirname, "..", "database");
@@ -15,17 +15,19 @@ class Database {
   }
 
   async init() {
-    return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.dbPath, (err) => {
-        if (err) {
-          console.error("Error opening database:", err);
-          reject(err);
-        } else {
-          console.log("Connected to SQLite database");
-          this.createTables().then(resolve).catch(reject);
-        }
-      });
-    });
+    try {
+      this.db = new Database(this.dbPath);
+      console.log("Connected to SQLite database");
+      
+      // Enable WAL mode for better performance
+      this.db.pragma('journal_mode = WAL');
+      
+      await this.createTables();
+      return Promise.resolve();
+    } catch (err) {
+      console.error("Error opening database:", err);
+      return Promise.reject(err);
+    }
   }
 
   async createTables() {
@@ -87,256 +89,147 @@ class Database {
       )
     `;
 
-    return new Promise((resolve, reject) => {
-      this.db.run(createGuestsTable, (err) => {
-        if (err) {
-          console.error("Error creating guests table:", err);
-          reject(err);
-        } else {
-          console.log("Guests table created successfully");
+    try {
+      this.db.exec(createGuestsTable);
+      console.log("Guests table created successfully");
 
-          // Create invitation guests table
-          this.db.run(createInvitationGuestsTable, (err) => {
-            if (err) {
-              console.error("Error creating invitation_guests table:", err);
-              reject(err);
-            } else {
-              console.log("Invitation guests table created successfully");
+      this.db.exec(createInvitationGuestsTable);
+      console.log("Invitation guests table created successfully");
 
-              // Create wedding files table
-              this.db.run(createWeddingFilesTable, (err) => {
-                if (err) {
-                  console.error("Error creating wedding_files table:", err);
-                  reject(err);
-                } else {
-                  console.log("Wedding files table created successfully");
+      this.db.exec(createWeddingFilesTable);
+      console.log("Wedding files table created successfully");
 
-                  // Create wedding info table
-                  this.db.run(createWeddingInfoTable, (err) => {
-                    if (err) {
-                      console.error("Error creating wedding_info table:", err);
-                      reject(err);
-                    } else {
-                      console.log("Wedding info table created successfully");
-                      // Add columns to existing table if they don't exist
-                      this.addMissingColumns()
-                        .then(() => this.addInvitationGuestsColumns())
-                        .then(resolve)
-                        .catch(reject);
-                    }
-                  });
-                }
-              });
-            }
-          });
-        }
-      });
-    });
+      this.db.exec(createWeddingInfoTable);
+      console.log("Wedding info table created successfully");
+
+      // Add columns to existing table if they don't exist
+      await this.addMissingColumns();
+      await this.addInvitationGuestsColumns();
+      
+      return Promise.resolve();
+    } catch (err) {
+      console.error("Error creating tables:", err);
+      return Promise.reject(err);
+    }
   }
 
   async addMissingColumns() {
-    return new Promise((resolve, reject) => {
+    try {
       // Check if new columns exist in guests table
-      this.db.all("PRAGMA table_info(guests)", [], (err, columns) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+      const columns = this.db.pragma("table_info(guests)");
+      const columnNames = columns.map((col) => col.name);
 
-        const columnNames = columns.map((col) => col.name);
-        const alterQueries = [];
+      if (!columnNames.includes("amount_khr")) {
+        this.db.exec("ALTER TABLE guests ADD COLUMN amount_khr REAL NOT NULL DEFAULT 0");
+      }
+      if (!columnNames.includes("amount_usd")) {
+        this.db.exec("ALTER TABLE guests ADD COLUMN amount_usd REAL NOT NULL DEFAULT 0");
+      }
+      if (!columnNames.includes("invitation_guest_id")) {
+        this.db.exec("ALTER TABLE guests ADD COLUMN invitation_guest_id INTEGER");
+      }
+      if (!columnNames.includes("name_km")) {
+        this.db.exec("ALTER TABLE guests ADD COLUMN name_km TEXT");
+      }
 
-        if (!columnNames.includes("amount_khr")) {
-          alterQueries.push(
-            "ALTER TABLE guests ADD COLUMN amount_khr REAL NOT NULL DEFAULT 0"
-          );
-        }
-        if (!columnNames.includes("amount_usd")) {
-          alterQueries.push(
-            "ALTER TABLE guests ADD COLUMN amount_usd REAL NOT NULL DEFAULT 0"
-          );
-        }
-        if (!columnNames.includes("invitation_guest_id")) {
-          alterQueries.push(
-            "ALTER TABLE guests ADD COLUMN invitation_guest_id INTEGER"
-          );
-        }
-        if (!columnNames.includes("name_km")) {
-          alterQueries.push("ALTER TABLE guests ADD COLUMN name_km TEXT");
-        }
-
-        // Execute guest table alter queries
-        if (alterQueries.length > 0) {
-          let completed = 0;
-          alterQueries.forEach((query) => {
-            this.db.run(query, (err) => {
-              if (err) {
-                console.error("Error adding column:", err);
-                reject(err);
-                return;
-              }
-              completed++;
-              if (completed === alterQueries.length) {
-                // Update existing records with converted amounts
-                this.updateExistingConversions()
-                  .then(() => this.addWeddingFilesTypeColumn())
-                  .then(resolve)
-                  .catch(reject);
-              }
-            });
-          });
-        } else {
-          // No guest table updates needed, check wedding_files
-          this.updateExistingConversions()
-            .then(() => this.addWeddingFilesTypeColumn())
-            .then(resolve)
-            .catch(reject);
-        }
-      });
-    });
+      // Update existing records with converted amounts
+      await this.updateExistingConversions();
+      await this.addWeddingFilesTypeColumn();
+      
+      return Promise.resolve();
+    } catch (err) {
+      console.error("Error adding missing columns:", err);
+      return Promise.reject(err);
+    }
   }
 
   async addWeddingFilesTypeColumn() {
-    return new Promise((resolve, reject) => {
+    try {
       // Check if type column exists in wedding_files table
-      this.db.all("PRAGMA table_info(wedding_files)", [], (err, columns) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+      const columns = this.db.pragma("table_info(wedding_files)");
+      const columnNames = columns.map((col) => col.name);
 
-        const columnNames = columns.map((col) => col.name);
-
-        if (!columnNames.includes("type")) {
-          this.db.run(
-            "ALTER TABLE wedding_files ADD COLUMN type TEXT DEFAULT 'document'",
-            (err) => {
-              if (err) {
-                console.error(
-                  "Error adding type column to wedding_files:",
-                  err
-                );
-                reject(err);
-              } else {
-                console.log("Added type column to wedding_files table");
-                resolve();
-              }
-            }
-          );
-        } else {
-          resolve();
-        }
-      });
-    });
+      if (!columnNames.includes("type")) {
+        this.db.exec("ALTER TABLE wedding_files ADD COLUMN type TEXT DEFAULT 'document'");
+        console.log("Added type column to wedding_files table");
+      }
+      
+      return Promise.resolve();
+    } catch (err) {
+      console.error("Error adding type column to wedding_files:", err);
+      return Promise.reject(err);
+    }
   }
 
   async addInvitationGuestsColumns() {
-    return new Promise((resolve, reject) => {
+    try {
       // Check if name_km column exists in invitation_guests table
-      this.db.all(
-        "PRAGMA table_info(invitation_guests)",
-        [],
-        (err, columns) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+      const columns = this.db.pragma("table_info(invitation_guests)");
+      const columnNames = columns.map((col) => col.name);
 
-          const columnNames = columns.map((col) => col.name);
-
-          if (!columnNames.includes("name_km")) {
-            this.db.run(
-              "ALTER TABLE invitation_guests ADD COLUMN name_km TEXT",
-              (err) => {
-                if (err) {
-                  console.error(
-                    "Error adding name_km column to invitation_guests:",
-                    err
-                  );
-                  reject(err);
-                } else {
-                  console.log(
-                    "Added name_km column to invitation_guests table"
-                  );
-                  resolve();
-                }
-              }
-            );
-          } else {
-            resolve();
-          }
-        }
-      );
-    });
+      if (!columnNames.includes("name_km")) {
+        this.db.exec("ALTER TABLE invitation_guests ADD COLUMN name_km TEXT");
+        console.log("Added name_km column to invitation_guests table");
+      }
+      
+      return Promise.resolve();
+    } catch (err) {
+      console.error("Error adding name_km column to invitation_guests:", err);
+      return Promise.reject(err);
+    }
   }
 
   async updateExistingConversions() {
     const EXCHANGE_RATE = 4000;
 
-    return new Promise((resolve, reject) => {
+    try {
       // Get all guests that need conversion updates
-      this.db.all(
-        "SELECT id, amount, currency FROM guests WHERE amount_khr = 0 AND amount_usd = 0",
-        [],
-        (err, rows) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          if (rows.length === 0) {
-            resolve();
-            return;
-          }
-
-          let completed = 0;
-          rows.forEach((guest) => {
-            const amountKHR =
-              guest.currency === "KHR"
-                ? guest.amount
-                : guest.amount * EXCHANGE_RATE;
-            const amountUSD =
-              guest.currency === "USD"
-                ? guest.amount
-                : guest.amount / EXCHANGE_RATE;
-
-            this.db.run(
-              "UPDATE guests SET amount_khr = ?, amount_usd = ? WHERE id = ?",
-              [amountKHR, amountUSD, guest.id],
-              (err) => {
-                if (err) {
-                  console.error(
-                    "Error updating conversion for guest:",
-                    guest.id,
-                    err
-                  );
-                  reject(err);
-                  return;
-                }
-                completed++;
-                if (completed === rows.length) {
-                  console.log(`Updated conversions for ${completed} guests`);
-                  resolve();
-                }
-              }
-            );
-          });
-        }
+      const stmt = this.db.prepare(
+        "SELECT id, amount, currency FROM guests WHERE amount_khr = 0 AND amount_usd = 0"
       );
-    });
+      const rows = stmt.all();
+
+      if (rows.length === 0) {
+        return Promise.resolve();
+      }
+
+      const updateStmt = this.db.prepare(
+        "UPDATE guests SET amount_khr = ?, amount_usd = ? WHERE id = ?"
+      );
+
+      const updateMany = this.db.transaction((guests) => {
+        for (const guest of guests) {
+          const amountKHR =
+            guest.currency === "KHR"
+              ? guest.amount
+              : guest.amount * EXCHANGE_RATE;
+          const amountUSD =
+            guest.currency === "USD"
+              ? guest.amount
+              : guest.amount / EXCHANGE_RATE;
+
+          updateStmt.run(amountKHR, amountUSD, guest.id);
+        }
+      });
+
+      updateMany(rows);
+      console.log(`Updated conversions for ${rows.length} guests`);
+      
+      return Promise.resolve();
+    } catch (err) {
+      console.error("Error updating conversions:", err);
+      return Promise.reject(err);
+    }
   }
 
   async getGuests() {
-    return new Promise((resolve, reject) => {
-      const query = "SELECT * FROM guests ORDER BY created_at DESC";
-      this.db.all(query, [], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("SELECT * FROM guests ORDER BY created_at DESC");
+      const rows = stmt.all();
+      return Promise.resolve(rows);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async addGuest(guest) {
@@ -349,35 +242,29 @@ class Database {
     const amountUSD =
       guest.currency === "USD" ? amount : amount / EXCHANGE_RATE;
 
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         INSERT INTO guests (name, name_km, phone, note, amount, currency, amount_khr, amount_usd, payment_type, invitation_guest_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
+      `);
 
-      this.db.run(
-        query,
-        [
-          guest.name,
-          guest.name_km || null,
-          guest.phone || "",
-          guest.note || "",
-          amount,
-          guest.currency,
-          amountKHR,
-          amountUSD,
-          guest.payment_type,
-          guest.invitation_guest_id || null,
-        ],
-        function (err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(this.lastID);
-          }
-        }
+      const info = stmt.run(
+        guest.name,
+        guest.name_km || null,
+        guest.phone || "",
+        guest.note || "",
+        amount,
+        guest.currency,
+        amountKHR,
+        amountUSD,
+        guest.payment_type,
+        guest.invitation_guest_id || null
       );
-    });
+
+      return Promise.resolve(info.lastInsertRowid);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async updateGuest(id, guest) {
@@ -390,288 +277,232 @@ class Database {
     const amountUSD =
       guest.currency === "USD" ? amount : amount / EXCHANGE_RATE;
 
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         UPDATE guests 
         SET name = ?, name_km = ?, phone = ?, note = ?, amount = ?, currency = ?, amount_khr = ?, amount_usd = ?, payment_type = ?, invitation_guest_id = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `;
+      `);
 
-      this.db.run(
-        query,
-        [
-          guest.name,
-          guest.name_km || null,
-          guest.phone || "",
-          guest.note || "",
-          amount,
-          guest.currency,
-          amountKHR,
-          amountUSD,
-          guest.payment_type,
-          guest.invitation_guest_id || null,
-          id,
-        ],
-        function (err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(this.changes);
-          }
-        }
+      const info = stmt.run(
+        guest.name,
+        guest.name_km || null,
+        guest.phone || "",
+        guest.note || "",
+        amount,
+        guest.currency,
+        amountKHR,
+        amountUSD,
+        guest.payment_type,
+        guest.invitation_guest_id || null,
+        id
       );
-    });
+
+      return Promise.resolve(info.changes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async deleteGuest(id) {
-    return new Promise((resolve, reject) => {
-      const query = "DELETE FROM guests WHERE id = ?";
-
-      this.db.run(query, [id], function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("DELETE FROM guests WHERE id = ?");
+      const info = stmt.run(id);
+      return Promise.resolve(info.changes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async getTotals() {
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         SELECT 
           COUNT(*) as total_guests,
           COALESCE(SUM(amount_khr), 0) as total_khr,
           COALESCE(SUM(amount_usd), 0) as total_usd,
           COALESCE(SUM(CASE WHEN payment_type = 'CASH' AND currency = 'KHR' THEN amount_khr WHEN payment_type = 'CASH' AND currency = 'USD' THEN amount_usd ELSE 0 END), 0) as cash_total
         FROM guests
-      `;
+      `);
 
-      this.db.get(query, [], (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
-      });
-    });
+      const row = stmt.get();
+      return Promise.resolve(row);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   close() {
     if (this.db) {
-      this.db.close((err) => {
-        if (err) {
-          console.error("Error closing database:", err);
-        } else {
-          console.log("Database connection closed");
-        }
-      });
+      try {
+        this.db.close();
+        console.log("Database connection closed");
+      } catch (err) {
+        console.error("Error closing database:", err);
+      }
     }
   }
 
   // Wedding Files Operations
   async addWeddingFile(fileData) {
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         INSERT INTO wedding_files (name, original_name, file_path, file_size, mime_type, file_type, type)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
+      `);
 
-      const params = [
+      const info = stmt.run(
         fileData.name,
         fileData.originalName,
         fileData.filePath,
         fileData.fileSize,
         fileData.mimeType,
         fileData.fileType,
-        fileData.type,
-      ];
+        fileData.type
+      );
 
-      this.db.run(query, params, function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ id: this.lastID, ...fileData });
-        }
-      });
-    });
+      return Promise.resolve({ id: info.lastInsertRowid, ...fileData });
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async getWeddingFiles() {
-    return new Promise((resolve, reject) => {
-      const query = "SELECT * FROM wedding_files ORDER BY created_at DESC";
-
-      this.db.all(query, [], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("SELECT * FROM wedding_files ORDER BY created_at DESC");
+      const rows = stmt.all();
+      return Promise.resolve(rows);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async deleteWeddingFile(id) {
-    return new Promise((resolve, reject) => {
-      const query = "DELETE FROM wedding_files WHERE id = ?";
-
-      this.db.run(query, [id], function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("DELETE FROM wedding_files WHERE id = ?");
+      const info = stmt.run(id);
+      return Promise.resolve(info.changes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async getWeddingFile(id) {
-    return new Promise((resolve, reject) => {
-      const query = "SELECT * FROM wedding_files WHERE id = ?";
-
-      this.db.get(query, [id], (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("SELECT * FROM wedding_files WHERE id = ?");
+      const row = stmt.get(id);
+      return Promise.resolve(row);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   // Wedding Info Operations
   async setWeddingInfo(fieldName, fieldValue) {
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         INSERT OR REPLACE INTO wedding_info (field_name, field_value, updated_at)
         VALUES (?, ?, CURRENT_TIMESTAMP)
-      `;
+      `);
 
-      this.db.run(query, [fieldName, fieldValue], function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes);
-        }
-      });
-    });
+      const info = stmt.run(fieldName, fieldValue);
+      return Promise.resolve(info.changes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async getWeddingInfo(fieldName) {
-    return new Promise((resolve, reject) => {
-      const query = "SELECT field_value FROM wedding_info WHERE field_name = ?";
-
-      this.db.get(query, [fieldName], (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row ? row.field_value : null);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("SELECT field_value FROM wedding_info WHERE field_name = ?");
+      const row = stmt.get(fieldName);
+      return Promise.resolve(row ? row.field_value : null);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async getAllWeddingInfo() {
-    return new Promise((resolve, reject) => {
-      const query = "SELECT field_name, field_value FROM wedding_info";
-
-      this.db.all(query, [], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const weddingInfo = {};
-          rows.forEach((row) => {
-            weddingInfo[row.field_name] = row.field_value;
-          });
-          resolve(weddingInfo);
-        }
+    try {
+      const stmt = this.db.prepare("SELECT field_name, field_value FROM wedding_info");
+      const rows = stmt.all();
+      
+      const weddingInfo = {};
+      rows.forEach((row) => {
+        weddingInfo[row.field_name] = row.field_value;
       });
-    });
+      
+      return Promise.resolve(weddingInfo);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   // QR Code specific operations
   async getPaymentQRCode() {
-    return new Promise((resolve, reject) => {
-      const query =
-        "SELECT * FROM wedding_files WHERE type = 'qr_code' ORDER BY created_at DESC LIMIT 1";
-
-      this.db.get(query, [], (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row || null);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare(
+        "SELECT * FROM wedding_files WHERE type = 'qr_code' ORDER BY created_at DESC LIMIT 1"
+      );
+      const row = stmt.get();
+      return Promise.resolve(row || null);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async addPaymentQRCode(fileData) {
-    return new Promise((resolve, reject) => {
+    try {
       // First, delete any existing QR code
-      this.db.run("DELETE FROM wedding_files WHERE type = 'qr_code'", (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+      const deleteStmt = this.db.prepare("DELETE FROM wedding_files WHERE type = 'qr_code'");
+      deleteStmt.run();
 
-        // Then add the new QR code
-        const query = `
-          INSERT INTO wedding_files (name, original_name, file_path, file_size, mime_type, file_type, type)
-          VALUES (?, ?, ?, ?, ?, ?, 'qr_code')
-        `;
+      // Then add the new QR code
+      const insertStmt = this.db.prepare(`
+        INSERT INTO wedding_files (name, original_name, file_path, file_size, mime_type, file_type, type)
+        VALUES (?, ?, ?, ?, ?, ?, 'qr_code')
+      `);
 
-        const params = [
-          fileData.name,
-          fileData.originalName,
-          fileData.filePath,
-          fileData.fileSize,
-          fileData.mimeType,
-          fileData.fileType,
-        ];
+      const info = insertStmt.run(
+        fileData.name,
+        fileData.originalName,
+        fileData.filePath,
+        fileData.fileSize,
+        fileData.mimeType,
+        fileData.fileType
+      );
 
-        this.db.run(query, params, function (err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve({ id: this.lastID, ...fileData, type: "qr_code" });
-          }
-        });
-      });
-    });
+      return Promise.resolve({ id: info.lastInsertRowid, ...fileData, type: "qr_code" });
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   // Invitation Guests Operations
   async addInvitationGuest(guest) {
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         INSERT INTO invitation_guests (name, phone, email, address, group_category, note)
         VALUES (?, ?, ?, ?, ?, ?)
-      `;
+      `);
 
-      this.db.run(
-        query,
-        [
-          guest.name,
-          guest.phone || null,
-          guest.email || null,
-          guest.address || null,
-          guest.group_category || null,
-          guest.note || null,
-        ],
-        function (err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(this.lastID);
-          }
-        }
+      const info = stmt.run(
+        guest.name,
+        guest.phone || null,
+        guest.email || null,
+        guest.address || null,
+        guest.group_category || null,
+        guest.note || null
       );
-    });
+
+      return Promise.resolve(info.lastInsertRowid);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async bulkAddInvitationGuests(guests) {
-    return new Promise((resolve, reject) => {
+    try {
       const stmt = this.db.prepare(`
         INSERT INTO invitation_guests (name, name_km, phone, email, address, group_category, note)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -681,45 +512,40 @@ class Database {
       let errorCount = 0;
       const errors = [];
 
-      this.db.run("BEGIN TRANSACTION");
-
-      guests.forEach((guest, index) => {
-        stmt.run(
-          [
-            guest.name,
-            guest.name_km || null,
-            guest.phone || null,
-            guest.email || null,
-            guest.address || null,
-            guest.group_category || null,
-            guest.note || null,
-          ],
-          (err) => {
-            if (err) {
-              errorCount++;
-              errors.push({ row: index + 1, error: err.message });
-            } else {
-              successCount++;
-            }
-
-            if (successCount + errorCount === guests.length) {
-              stmt.finalize();
-              if (errorCount > 0) {
-                this.db.run("ROLLBACK");
-                reject({ successCount, errorCount, errors });
-              } else {
-                this.db.run("COMMIT");
-                resolve({ successCount, errorCount: 0 });
-              }
-            }
+      const insertMany = this.db.transaction((guestsToInsert) => {
+        guestsToInsert.forEach((guest, index) => {
+          try {
+            stmt.run(
+              guest.name,
+              guest.name_km || null,
+              guest.phone || null,
+              guest.email || null,
+              guest.address || null,
+              guest.group_category || null,
+              guest.note || null
+            );
+            successCount++;
+          } catch (err) {
+            errorCount++;
+            errors.push({ row: index + 1, error: err.message });
           }
-        );
+        });
       });
-    });
+
+      insertMany(guests);
+
+      if (errorCount > 0) {
+        return Promise.reject({ successCount, errorCount, errors });
+      } else {
+        return Promise.resolve({ successCount, errorCount: 0 });
+      }
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async getInvitationGuests(filters = {}) {
-    return new Promise((resolve, reject) => {
+    try {
       let query = "SELECT * FROM invitation_guests WHERE 1=1";
       const params = [];
 
@@ -742,126 +568,100 @@ class Database {
 
       query += " ORDER BY created_at DESC";
 
-      this.db.all(query, params, (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+      const stmt = this.db.prepare(query);
+      const rows = stmt.all(...params);
+      return Promise.resolve(rows);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async getInvitationGuest(id) {
-    return new Promise((resolve, reject) => {
-      const query = "SELECT * FROM invitation_guests WHERE id = ?";
-
-      this.db.get(query, [id], (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("SELECT * FROM invitation_guests WHERE id = ?");
+      const row = stmt.get(id);
+      return Promise.resolve(row);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async updateInvitationGuest(id, guest) {
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         UPDATE invitation_guests 
         SET name = ?, phone = ?, email = ?, address = ?, group_category = ?, note = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `;
+      `);
 
-      this.db.run(
-        query,
-        [
-          guest.name,
-          guest.phone || null,
-          guest.email || null,
-          guest.address || null,
-          guest.group_category || null,
-          guest.note || null,
-          id,
-        ],
-        function (err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(this.changes);
-          }
-        }
+      const info = stmt.run(
+        guest.name,
+        guest.phone || null,
+        guest.email || null,
+        guest.address || null,
+        guest.group_category || null,
+        guest.note || null,
+        id
       );
-    });
+
+      return Promise.resolve(info.changes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async deleteInvitationGuest(id) {
-    return new Promise((resolve, reject) => {
-      const query = "DELETE FROM invitation_guests WHERE id = ?";
-
-      this.db.run(query, [id], function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("DELETE FROM invitation_guests WHERE id = ?");
+      const info = stmt.run(id);
+      return Promise.resolve(info.changes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async markInvitationGuestAsImported(id) {
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         UPDATE invitation_guests 
         SET is_imported = 1, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `;
+      `);
 
-      this.db.run(query, [id], function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes);
-        }
-      });
-    });
+      const info = stmt.run(id);
+      return Promise.resolve(info.changes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async getInvitationGuestStats() {
-    return new Promise((resolve, reject) => {
-      const query = `
+    try {
+      const stmt = this.db.prepare(`
         SELECT 
           COUNT(*) as total,
           COUNT(CASE WHEN is_imported = 1 THEN 1 END) as imported,
           COUNT(CASE WHEN is_imported = 0 THEN 1 END) as not_imported,
           COUNT(DISTINCT group_category) as total_groups
         FROM invitation_guests
-      `;
+      `);
 
-      this.db.get(query, [], (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
-      });
-    });
+      const row = stmt.get();
+      return Promise.resolve(row);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   async clearAllInvitationGuests() {
-    return new Promise((resolve, reject) => {
-      const query = "DELETE FROM invitation_guests";
-
-      this.db.run(query, [], function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes);
-        }
-      });
-    });
+    try {
+      const stmt = this.db.prepare("DELETE FROM invitation_guests");
+      const info = stmt.run();
+      return Promise.resolve(info.changes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 }
 
-module.exports = Database;
+module.exports = DatabaseManager;

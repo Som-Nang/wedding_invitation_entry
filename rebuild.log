@@ -1,0 +1,70 @@
+- Searching dependency tree
+(node:330627) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+make: Entering directory '/home/somnang/Desktop/wedding_book/node_modules/better-sqlite3/build'
+  TOUCH ba23eeee118cd63e16015df367567cb043fed872.intermediate
+  ACTION deps_sqlite3_gyp_locate_sqlite3_target_copy_builtin_sqlite3 ba23eeee118cd63e16015df367567cb043fed872.intermediate
+  TOUCH Release/obj.target/deps/locate_sqlite3.stamp
+  CC(target) Release/obj.target/sqlite3/gen/sqlite3/sqlite3.o
+rm -f Release/obj.target/deps/sqlite3.a Release/obj.target/deps/sqlite3.a.ar-file-list; mkdir -p `dirname Release/obj.target/deps/sqlite3.a`
+ar crs Release/obj.target/deps/sqlite3.a @Release/obj.target/deps/sqlite3.a.ar-file-list
+  COPY Release/sqlite3.a
+  CXX(target) Release/obj.target/better_sqlite3/src/better_sqlite3.o
+In file included from /home/somnang/.electron-gyp/28.3.3/include/node/v8-object.h:10,
+                 from /home/somnang/.electron-gyp/28.3.3/include/node/v8-array-buffer.h:13,
+                 from /home/somnang/.electron-gyp/28.3.3/include/node/v8.h:24,
+                 from /home/somnang/.electron-gyp/28.3.3/include/node/node.h:79,
+                 from ../src/better_sqlite3.cpp:11:
+/home/somnang/.electron-gyp/28.3.3/include/node/v8-persistent-handle.h:245:44: warning: ‘template<class T> struct v8::CopyablePersistentTraits’ is deprecated: Use v8::Global instead [-Wdeprecated-declarations]
+  245 |   using CopyablePersistent = Persistent<T, CopyablePersistentTraits<T>>;
+      |                                            ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/somnang/.electron-gyp/28.3.3/include/node/v8-persistent-handle.h:244:48: note: declared here
+  244 | struct V8_DEPRECATED("Use v8::Global instead") CopyablePersistentTraits {
+      |                                                ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/somnang/.electron-gyp/28.3.3/include/node/node.h:1067:7: warning: cast between incompatible function types from ‘void (*)(v8::Local<v8::Object>, v8::Local<v8::Value>, v8::Local<v8::Context>)’ to ‘node::addon_context_register_func’ {aka ‘void (*)(v8::Local<v8::Object>, v8::Local<v8::Value>, v8::Local<v8::Context>, void*)’} [-Wcast-function-type]
+ 1067 |       (node::addon_context_register_func) (regfunc),                  \
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/somnang/.electron-gyp/28.3.3/include/node/node.h:1085:3: note: in expansion of macro ‘NODE_MODULE_CONTEXT_AWARE_X’
+ 1085 |   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, 0)
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/somnang/.electron-gyp/28.3.3/include/node/node.h:1116:3: note: in expansion of macro ‘NODE_MODULE_CONTEXT_AWARE’
+ 1116 |   NODE_MODULE_CONTEXT_AWARE(NODE_GYP_MODULE_NAME,                     \
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~~
+../src/better_sqlite3.cpp:48:1: note: in expansion of macro ‘NODE_MODULE_INIT’
+   48 | NODE_MODULE_INIT(/* exports, context */) {
+      | ^~~~~~~~~~~~~~~~
+In file included from ../src/better_sqlite3.cpp:26:
+../src/util/data.cpp: In function ‘v8::Local<v8::Value> Data::GetValueJS(v8::Isolate*, sqlite3_stmt*, int, bool)’:
+../src/util/data.cpp:36:17: warning: this statement may fall through [-Wimplicit-fallthrough=]
+   36 |                 if (safe_ints) {                                                       \
+      |                 ^~
+../src/util/data.cpp:73:17: note: in expansion of macro ‘SQLITE_VALUE_TO_JS’
+   73 |                 SQLITE_VALUE_TO_JS(column, isolate, safe_ints, handle, column);
+      |                 ^~~~~~~~~~~~~~~~~~
+../src/util/data.cpp:42:9: note: here
+   42 |         case SQLITE_FLOAT:                                                         \
+      |         ^~~~
+../src/util/data.cpp:73:17: note: in expansion of macro ‘SQLITE_VALUE_TO_JS’
+   73 |                 SQLITE_VALUE_TO_JS(column, isolate, safe_ints, handle, column);
+      |                 ^~~~~~~~~~~~~~~~~~
+../src/util/data.cpp: In function ‘v8::Local<v8::Value> Data::GetValueJS(v8::Isolate*, sqlite3_value*, bool)’:
+../src/util/data.cpp:36:17: warning: this statement may fall through [-Wimplicit-fallthrough=]
+   36 |                 if (safe_ints) {                                                       \
+      |                 ^~
+../src/util/data.cpp:77:17: note: in expansion of macro ‘SQLITE_VALUE_TO_JS’
+   77 |                 SQLITE_VALUE_TO_JS(value, isolate, safe_ints, value);
+      |                 ^~~~~~~~~~~~~~~~~~
+../src/util/data.cpp:42:9: note: here
+   42 |         case SQLITE_FLOAT:                                                         \
+      |         ^~~~
+../src/util/data.cpp:77:17: note: in expansion of macro ‘SQLITE_VALUE_TO_JS’
+   77 |                 SQLITE_VALUE_TO_JS(value, isolate, safe_ints, value);
+      |                 ^~~~~~~~~~~~~~~~~~
+  SOLINK_MODULE(target) Release/obj.target/better_sqlite3.node
+  COPY Release/better_sqlite3.node
+  CC(target) Release/obj.target/test_extension/deps/test_extension.o
+  SOLINK_MODULE(target) Release/obj.target/test_extension.node
+  COPY Release/test_extension.node
+rm ba23eeee118cd63e16015df367567cb043fed872.intermediate
+make: Leaving directory '/home/somnang/Desktop/wedding_book/node_modules/better-sqlite3/build'
+✔ Rebuild Complete
