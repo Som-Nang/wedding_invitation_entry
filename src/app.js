@@ -1199,13 +1199,12 @@ function processFiles(files) {
   }
 }
 
-function uploadFiles(files) {
-  const { app } = require("electron");
+async function uploadFiles(files) {
   const path = require("path");
   const fs = require("fs");
 
-  // Create uploads directory if it doesn't exist
-  const uploadsDir = path.join(app.getPath("userData"), "wedding-uploads");
+  // Get uploads directory from main process (handles packaged app correctly)
+  const uploadsDir = await ipcRenderer.invoke("get-uploads-path");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
@@ -1652,8 +1651,8 @@ async function uploadQRCode() {
     const fs = require("fs");
     const path = require("path");
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(__dirname, "..", "database", "uploads");
+    // Get uploads directory from main process (handles packaged app correctly)
+    const uploadsDir = await ipcRenderer.invoke("get-uploads-path");
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }

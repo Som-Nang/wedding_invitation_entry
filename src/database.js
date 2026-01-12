@@ -1,27 +1,78 @@
-const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
 
+// Handle better-sqlite3 loading in packaged app
+function loadDatabase() {
+  const attempts = [];
+
+  try {
+    // Method 1: Try app.asar.unpacked (standard electron-builder location)
+    if (process.resourcesPath) {
+      const unpackedPath = path.join(
+        process.resourcesPath,
+        "app.asar.unpacked",
+        "node_modules",
+        "better-sqlite3"
+      );
+      attempts.push(unpackedPath);
+      if (fs.existsSync(unpackedPath)) {
+        console.log("Loading better-sqlite3 from unpacked:", unpackedPath);
+        return require(unpackedPath);
+      }
+
+      // Method 2: Try extraResources location
+      const resourcesPath = path.join(process.resourcesPath, "better-sqlite3");
+      attempts.push(resourcesPath);
+      if (fs.existsSync(resourcesPath)) {
+        console.log("Loading better-sqlite3 from resources:", resourcesPath);
+        return require(resourcesPath);
+      }
+    }
+
+    // Method 3: Regular require (for dev mode)
+    attempts.push("regular require");
+    console.log("Loading better-sqlite3 via regular require");
+    return require("better-sqlite3");
+  } catch (err) {
+    console.error("Error loading better-sqlite3:", err);
+    console.error("Attempted paths:", attempts);
+    throw new Error(
+      `Failed to load better-sqlite3 module. Tried: ${attempts.join(", ")}`
+    );
+  }
+}
+
+const Database = loadDatabase();
+
 class DatabaseManager {
-  constructor() {
-    // Ensure database directory exists
-    const dbDir = path.join(__dirname, "..", "database");
+  constructor(dbPath = null) {
+    // If dbPath is provided, use it; otherwise use default local path
+    let dbDir;
+    if (dbPath) {
+      this.dbPath = dbPath;
+      dbDir = path.dirname(dbPath);
+    } else {
+      // Default to local database folder for development
+      dbDir = path.join(__dirname, "..", "database");
+      this.dbPath = path.join(dbDir, "wedding.db");
+    }
+
     if (!fs.existsSync(dbDir)) {
       fs.mkdirSync(dbDir, { recursive: true });
     }
 
-    this.dbPath = path.join(dbDir, "wedding.db");
     this.db = null;
+    console.log("Database path:", this.dbPath);
   }
 
   async init() {
     try {
       this.db = new Database(this.dbPath);
       console.log("Connected to SQLite database");
-      
+
       // Enable WAL mode for better performance
-      this.db.pragma('journal_mode = WAL');
-      
+      this.db.pragma("journal_mode = WAL");
+
       await this.createTables();
       return Promise.resolve();
     } catch (err) {
@@ -105,7 +156,7 @@ class DatabaseManager {
       // Add columns to existing table if they don't exist
       await this.addMissingColumns();
       await this.addInvitationGuestsColumns();
-      
+
       return Promise.resolve();
     } catch (err) {
       console.error("Error creating tables:", err);
@@ -120,13 +171,19 @@ class DatabaseManager {
       const columnNames = columns.map((col) => col.name);
 
       if (!columnNames.includes("amount_khr")) {
-        this.db.exec("ALTER TABLE guests ADD COLUMN amount_khr REAL NOT NULL DEFAULT 0");
+        this.db.exec(
+          "ALTER TABLE guests ADD COLUMN amount_khr REAL NOT NULL DEFAULT 0"
+        );
       }
       if (!columnNames.includes("amount_usd")) {
-        this.db.exec("ALTER TABLE guests ADD COLUMN amount_usd REAL NOT NULL DEFAULT 0");
+        this.db.exec(
+          "ALTER TABLE guests ADD COLUMN amount_usd REAL NOT NULL DEFAULT 0"
+        );
       }
       if (!columnNames.includes("invitation_guest_id")) {
-        this.db.exec("ALTER TABLE guests ADD COLUMN invitation_guest_id INTEGER");
+        this.db.exec(
+          "ALTER TABLE guests ADD COLUMN invitation_guest_id INTEGER"
+        );
       }
       if (!columnNames.includes("name_km")) {
         this.db.exec("ALTER TABLE guests ADD COLUMN name_km TEXT");
@@ -135,7 +192,7 @@ class DatabaseManager {
       // Update existing records with converted amounts
       await this.updateExistingConversions();
       await this.addWeddingFilesTypeColumn();
-      
+
       return Promise.resolve();
     } catch (err) {
       console.error("Error adding missing columns:", err);
@@ -150,10 +207,12 @@ class DatabaseManager {
       const columnNames = columns.map((col) => col.name);
 
       if (!columnNames.includes("type")) {
-        this.db.exec("ALTER TABLE wedding_files ADD COLUMN type TEXT DEFAULT 'document'");
+        this.db.exec(
+          "ALTER TABLE wedding_files ADD COLUMN type TEXT DEFAULT 'document'"
+        );
         console.log("Added type column to wedding_files table");
       }
-      
+
       return Promise.resolve();
     } catch (err) {
       console.error("Error adding type column to wedding_files:", err);
@@ -171,7 +230,7 @@ class DatabaseManager {
         this.db.exec("ALTER TABLE invitation_guests ADD COLUMN name_km TEXT");
         console.log("Added name_km column to invitation_guests table");
       }
-      
+
       return Promise.resolve();
     } catch (err) {
       console.error("Error adding name_km column to invitation_guests:", err);
@@ -214,7 +273,7 @@ class DatabaseManager {
 
       updateMany(rows);
       console.log(`Updated conversions for ${rows.length} guests`);
-      
+
       return Promise.resolve();
     } catch (err) {
       console.error("Error updating conversions:", err);
@@ -224,7 +283,9 @@ class DatabaseManager {
 
   async getGuests() {
     try {
-      const stmt = this.db.prepare("SELECT * FROM guests ORDER BY created_at DESC");
+      const stmt = this.db.prepare(
+        "SELECT * FROM guests ORDER BY created_at DESC"
+      );
       const rows = stmt.all();
       return Promise.resolve(rows);
     } catch (err) {
@@ -369,7 +430,9 @@ class DatabaseManager {
 
   async getWeddingFiles() {
     try {
-      const stmt = this.db.prepare("SELECT * FROM wedding_files ORDER BY created_at DESC");
+      const stmt = this.db.prepare(
+        "SELECT * FROM wedding_files ORDER BY created_at DESC"
+      );
       const rows = stmt.all();
       return Promise.resolve(rows);
     } catch (err) {
@@ -414,7 +477,9 @@ class DatabaseManager {
 
   async getWeddingInfo(fieldName) {
     try {
-      const stmt = this.db.prepare("SELECT field_value FROM wedding_info WHERE field_name = ?");
+      const stmt = this.db.prepare(
+        "SELECT field_value FROM wedding_info WHERE field_name = ?"
+      );
       const row = stmt.get(fieldName);
       return Promise.resolve(row ? row.field_value : null);
     } catch (err) {
@@ -424,14 +489,16 @@ class DatabaseManager {
 
   async getAllWeddingInfo() {
     try {
-      const stmt = this.db.prepare("SELECT field_name, field_value FROM wedding_info");
+      const stmt = this.db.prepare(
+        "SELECT field_name, field_value FROM wedding_info"
+      );
       const rows = stmt.all();
-      
+
       const weddingInfo = {};
       rows.forEach((row) => {
         weddingInfo[row.field_name] = row.field_value;
       });
-      
+
       return Promise.resolve(weddingInfo);
     } catch (err) {
       return Promise.reject(err);
@@ -454,7 +521,9 @@ class DatabaseManager {
   async addPaymentQRCode(fileData) {
     try {
       // First, delete any existing QR code
-      const deleteStmt = this.db.prepare("DELETE FROM wedding_files WHERE type = 'qr_code'");
+      const deleteStmt = this.db.prepare(
+        "DELETE FROM wedding_files WHERE type = 'qr_code'"
+      );
       deleteStmt.run();
 
       // Then add the new QR code
@@ -472,7 +541,11 @@ class DatabaseManager {
         fileData.fileType
       );
 
-      return Promise.resolve({ id: info.lastInsertRowid, ...fileData, type: "qr_code" });
+      return Promise.resolve({
+        id: info.lastInsertRowid,
+        ...fileData,
+        type: "qr_code",
+      });
     } catch (err) {
       return Promise.reject(err);
     }
@@ -578,7 +651,9 @@ class DatabaseManager {
 
   async getInvitationGuest(id) {
     try {
-      const stmt = this.db.prepare("SELECT * FROM invitation_guests WHERE id = ?");
+      const stmt = this.db.prepare(
+        "SELECT * FROM invitation_guests WHERE id = ?"
+      );
       const row = stmt.get(id);
       return Promise.resolve(row);
     } catch (err) {
@@ -612,7 +687,9 @@ class DatabaseManager {
 
   async deleteInvitationGuest(id) {
     try {
-      const stmt = this.db.prepare("DELETE FROM invitation_guests WHERE id = ?");
+      const stmt = this.db.prepare(
+        "DELETE FROM invitation_guests WHERE id = ?"
+      );
       const info = stmt.run(id);
       return Promise.resolve(info.changes);
     } catch (err) {

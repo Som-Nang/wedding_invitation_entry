@@ -1,8 +1,44 @@
-const { app, BrowserWindow, Menu, ipcMain } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, dialog } = require("electron");
 const path = require("path");
-const Database = require("./src/database");
 const os = require("os");
 const fs = require("fs");
+
+// Log app info for debugging
+console.log("App is packaged:", app.isPackaged);
+console.log("App path:", app.getAppPath());
+console.log("User data path:", app.getPath("userData"));
+
+const Database = require("./src/database");
+
+// Determine database path based on environment
+function getDatabasePath() {
+  let dbDir;
+  if (app.isPackaged) {
+    // For packaged app, use userData directory
+    dbDir = path.join(app.getPath("userData"), "database");
+  } else {
+    // For development, use local database folder
+    dbDir = path.join(__dirname, "database");
+  }
+  return path.join(dbDir, "wedding.db");
+}
+
+// Determine uploads path based on environment
+function getUploadsPath() {
+  let uploadsDir;
+  if (app.isPackaged) {
+    // For packaged app, use userData directory
+    uploadsDir = path.join(app.getPath("userData"), "database", "uploads");
+  } else {
+    // For development, use local database/uploads folder
+    uploadsDir = path.join(__dirname, "database", "uploads");
+  }
+  // Ensure directory exists
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  return uploadsDir;
+}
 
 // Create custom temp directory in user home to avoid /tmp issues
 const customTempDir = path.join(os.homedir(), ".wedding-book-temp");
@@ -58,9 +94,24 @@ function createWindow() {
   });
 }
 
+// Determine database path based on environment
+function getDatabasePath() {
+  let dbDir;
+  if (app.isPackaged) {
+    // For packaged app, use userData directory
+    dbDir = path.join(app.getPath("userData"), "database");
+  } else {
+    // For development, use local database folder
+    dbDir = path.join(__dirname, "database");
+  }
+  return path.join(dbDir, "wedding.db");
+}
+
 // Initialize database
 function initDatabase() {
-  database = new Database();
+  const dbPath = getDatabasePath();
+  console.log("Initializing database at:", dbPath);
+  database = new Database(dbPath);
   return database.init();
 }
 
@@ -154,6 +205,18 @@ app.whenReady().then(async () => {
     Menu.setApplicationMenu(menu);
   } catch (error) {
     console.error("Failed to initialize application:", error);
+    console.error("Error stack:", error.stack);
+
+    // Show error dialog to user
+    dialog.showErrorBox(
+      "Application Error",
+      `Failed to start the application:\n\n${error.message}\n\nPlease check the console for more details.`
+    );
+
+    // Don't quit immediately in development
+    if (app.isPackaged) {
+      app.quit();
+    }
   }
 });
 
@@ -228,6 +291,16 @@ ipcMain.handle("get-payment-qr-code", async () => {
 
 ipcMain.handle("add-payment-qr-code", async (event, fileData) => {
   return await database.addPaymentQRCode(fileData);
+});
+
+// Get uploads path for renderer process
+ipcMain.handle("get-uploads-path", async () => {
+  return getUploadsPath();
+});
+
+// Get user data path for renderer process
+ipcMain.handle("get-user-data-path", async () => {
+  return app.getPath("userData");
 });
 
 // Invitation guests operations

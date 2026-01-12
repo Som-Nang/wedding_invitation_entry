@@ -106,7 +106,30 @@ This will create a Windows installer in the `dist` folder.
 
 ## Database
 
-The application uses SQLite database stored locally in the `database/wedding.db` file. The database includes:
+The application uses SQLite database stored locally. The database location differs between development and production modes.
+
+### Database Location
+
+| Mode                     | Database Path                                           |
+| ------------------------ | ------------------------------------------------------- |
+| **Development**          | `<project>/database/wedding.db`                         |
+| **Production (.exe)**    | `%APPDATA%\wedding-list-management\database\wedding.db` |
+| **Uploads (Production)** | `%APPDATA%\wedding-list-management\database\uploads\`   |
+
+#### Quick Access to Production Data
+
+Press `Win+R` → Type: `%appdata%\wedding-list-management` → Press Enter
+
+**Full Example Path:**
+
+```
+C:\Users\<username>\AppData\Roaming\wedding-list-management\
+├── database\
+│   ├── wedding.db          ← All guest data
+│   ├── wedding.db-shm      ← WAL shared memory (temporary)
+│   ├── wedding.db-wal      ← Write-ahead log (temporary)
+│   └── uploads\            ← Uploaded image files (QR codes, etc.)
+```
 
 ### Tables
 
@@ -140,6 +163,66 @@ The database follows Third Normal Form (3NF) principles:
 ### Data Persistence
 
 All data is stored locally and persists across application restarts. No internet connection required.
+
+## Backup & Restore
+
+### 💾 How to Backup Data
+
+**Important**: Always close the application before backing up!
+
+#### Method 1: Quick Backup (Recommended)
+
+1. Close the Wedding List Management application
+2. Press `Win+R`, type `%appdata%\wedding-list-management` and press Enter
+3. Copy the entire `database` folder to your backup location (USB, cloud, etc.)
+
+#### Method 2: Manual Backup
+
+1. Close the application
+2. Navigate to: `C:\Users\<your-username>\AppData\Roaming\wedding-list-management\`
+3. Copy the `database` folder
+
+#### What Gets Backed Up:
+
+| File/Folder  | Contains                                          |
+| ------------ | ------------------------------------------------- |
+| `wedding.db` | All guest records, invitation lists, wedding info |
+| `uploads/`   | QR code images and uploaded files                 |
+
+### 🔄 How to Restore Data
+
+1. Close the Wedding List Management application
+2. Navigate to `%appdata%\wedding-list-management\`
+3. Replace the `database` folder with your backup copy
+4. Start the application
+
+### 📋 Backup Checklist
+
+- [ ] Application is closed
+- [ ] Copy `database` folder (not just `wedding.db`)
+- [ ] Verify backup includes `uploads` subfolder if you have QR codes
+- [ ] Store backup in a safe location
+
+### ⚠️ Important Notes
+
+- **Do NOT** backup while the app is running (database may be locked)
+- The `.db-shm` and `.db-wal` files are temporary and will be recreated
+- For complete backup, always copy the entire `database` folder
+
+### 📝 ការបម្រុងទុកទិន្នន័យ (Khmer Guide)
+
+**របៀបបម្រុងទុក:**
+
+1. បិទកម្មវិធីគ្រប់គ្រងបញ្ជីភ្ញៀវមុនសិន
+2. ចុច `Win+R` វាយ `%appdata%\wedding-list-management` រួចចុច Enter
+3. ចម្លងថតឯកសារ `database` ទៅកន្លែងផ្ទុកទុក (USB, Cloud...)
+
+**របៀបស្ដារទិន្នន័យ:**
+
+1. បិទកម្មវិធី
+2. ចូលទៅ `%appdata%\wedding-list-management\`
+3. ជំនួសថតឯកសារ `database` ដោយច្បាប់ចម្លងដែលបានបម្រុងទុក
+4. បើកកម្មវិធីឡើងវិញ
 
 ## Customization
 
