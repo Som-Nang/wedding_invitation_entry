@@ -339,3 +339,20 @@ ipcMain.handle("get-invitation-guests-stats", async () => {
 ipcMain.handle("clear-all-invitation-guests", async () => {
   return await database.clearAllInvitationGuests();
 });
+
+// File dialog for export operations
+ipcMain.handle("show-save-dialog", async (event, options) => {
+  const downloadsPath = app.getPath("downloads");
+  const defaultPath = options.defaultPath
+    ? path.join(downloadsPath, options.defaultPath)
+    : downloadsPath;
+
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: options.title || "Save File",
+    defaultPath: defaultPath,
+    filters: options.filters || [{ name: "All Files", extensions: ["*"] }],
+    properties: ["createDirectory", "showOverwriteConfirmation"],
+  });
+
+  return result;
+});

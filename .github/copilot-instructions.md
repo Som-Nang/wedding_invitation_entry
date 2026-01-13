@@ -15,7 +15,7 @@ The UI will be smooth, animated, modern, and designed in a Khmer-friendly style.
 
 ## 🧩 Tech Stack Guidelines
 
-- Electron.js – Build cross-platform desktop applications using JavaScript, HTML, and CSS
+- Electron.js – Build cross-platform desktop applications using JavaScript, HTML, and CSS or Tailwind CSS.
 - Database: SQLite
 - Generate a Windows (.exe) application
 - Runs fully offline (no internet required); users can click and run easily

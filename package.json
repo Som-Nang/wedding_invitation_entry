@@ -21,6 +21,7 @@
     },
     "dependencies": {
         "better-sqlite3": "^12.6.0",
+        "pdfkit": "^0.17.2",
         "xlsx": "^0.18.5"
     },
     "build": {
@@ -35,7 +36,8 @@
             "node_modules/better-sqlite3/**/*",
             "node_modules/bindings/**/*",
             "node_modules/file-uri-to-path/**/*",
-            "node_modules/xlsx/**/*"
+            "node_modules/xlsx/**/*",
+            "node_modules/pdfkit/**/*"
         ],
         "extraResources": [
             {

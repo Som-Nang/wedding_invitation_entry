@@ -318,6 +318,14 @@
               placeholder="ស្វែងរកមៀហ្មាន... Search guests..."
             />
           </div>
+          <div class="filter-container">
+            <select id="paymentFilterSelect" class="filter-select">
+              <option value="">ប្រភេទបង់ទាំងអស់</option>
+              <option value="CASH">សាច់ប្រាក់</option>
+              <option value="ABA">ABA</option>
+              <option value="AC">AC</option>
+            </select>
+          </div>
         </div>
         <div class="controls-right">
           <button class="btn btn-secondary" id="exportExcelBtn">
@@ -328,10 +336,10 @@
             <i class="fas fa-file-pdf"></i>
             Export PDF
           </button>
-          <button class="btn btn-secondary" id="printBtn">
+          <!-- <button class="btn btn-secondary" id="printBtn">
             <i class="fas fa-print"></i>
             Print
-          </button>
+          </button> -->
         </div>
       </div>
     </section>
@@ -362,6 +370,70 @@
           </tbody>
         </table>
 
+        <!-- Table Loading Skeleton -->
+        <div
+          class="table-loading-skeleton"
+          id="tableLoadingSkeleton"
+          style="display: none"
+        >
+          <div class="skeleton-header">
+            <div class="skeleton-cell skeleton-index"></div>
+            <div class="skeleton-cell skeleton-name"></div>
+            <div class="skeleton-cell skeleton-phone"></div>
+            <div class="skeleton-cell skeleton-note"></div>
+            <div class="skeleton-cell skeleton-amount"></div>
+            <div class="skeleton-cell skeleton-payment"></div>
+            <div class="skeleton-cell skeleton-actions"></div>
+          </div>
+          <div class="skeleton-rows">
+            <div class="skeleton-row">
+              <div class="skeleton-cell skeleton-index"></div>
+              <div class="skeleton-cell skeleton-name"></div>
+              <div class="skeleton-cell skeleton-phone"></div>
+              <div class="skeleton-cell skeleton-note"></div>
+              <div class="skeleton-cell skeleton-amount"></div>
+              <div class="skeleton-cell skeleton-payment"></div>
+              <div class="skeleton-cell skeleton-actions"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-cell skeleton-index"></div>
+              <div class="skeleton-cell skeleton-name"></div>
+              <div class="skeleton-cell skeleton-phone"></div>
+              <div class="skeleton-cell skeleton-note"></div>
+              <div class="skeleton-cell skeleton-amount"></div>
+              <div class="skeleton-cell skeleton-payment"></div>
+              <div class="skeleton-cell skeleton-actions"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-cell skeleton-index"></div>
+              <div class="skeleton-cell skeleton-name"></div>
+              <div class="skeleton-cell skeleton-phone"></div>
+              <div class="skeleton-cell skeleton-note"></div>
+              <div class="skeleton-cell skeleton-amount"></div>
+              <div class="skeleton-cell skeleton-payment"></div>
+              <div class="skeleton-cell skeleton-actions"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-cell skeleton-index"></div>
+              <div class="skeleton-cell skeleton-name"></div>
+              <div class="skeleton-cell skeleton-phone"></div>
+              <div class="skeleton-cell skeleton-note"></div>
+              <div class="skeleton-cell skeleton-amount"></div>
+              <div class="skeleton-cell skeleton-payment"></div>
+              <div class="skeleton-cell skeleton-actions"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-cell skeleton-index"></div>
+              <div class="skeleton-cell skeleton-name"></div>
+              <div class="skeleton-cell skeleton-phone"></div>
+              <div class="skeleton-cell skeleton-note"></div>
+              <div class="skeleton-cell skeleton-amount"></div>
+              <div class="skeleton-cell skeleton-payment"></div>
+              <div class="skeleton-cell skeleton-actions"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Empty State -->
         <div class="empty-state" id="emptyState">
           <div class="empty-icon">
@@ -373,6 +445,11 @@
             <i class="fas fa-plus"></i>
             បន្ថែមភ្ញៀវដំបូង
           </button>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" id="paginationContainer">
+          <!-- Pagination will be rendered by JavaScript -->
         </div>
       </div>
     </section>
@@ -510,8 +587,17 @@
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
       <div class="loading-spinner">
-        <i class="fas fa-heart fa-beat"></i>
-        <p>Loading...</p>
+        <div class="loading-heart-container">
+          <i class="fas fa-heart loading-heart"></i>
+          <i class="fas fa-heart loading-heart-pulse"></i>
+        </div>
+        <div class="loading-text">
+          <p class="loading-title" id="loadingTitle">កំពុងដំណើរការ...</p>
+          <p class="loading-subtitle" id="loadingSubtitle">Processing...</p>
+        </div>
+        <div class="loading-progress">
+          <div class="loading-progress-bar"></div>
+        </div>
       </div>
     </div>
 
@@ -770,6 +856,18 @@
     </div>
 
     <script src="app.js"></script>
-    <script src="export.js"></script>
+    <script
+      src="export.js"
+      onerror="console.error('Failed to load export.js')"
+    ></script>
+    <script>
+      // Verify export functions are loaded
+      window.addEventListener("load", function () {
+        console.log("Window loaded. Export functions available:", {
+          exportToExcel: typeof window.exportToExcel,
+          exportToPDF: typeof window.exportToPDF,
+        });
+      });
+    </script>
   </body>
 </html>

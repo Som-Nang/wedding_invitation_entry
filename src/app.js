@@ -1,7 +1,8 @@
 const { ipcRenderer } = require("electron");
 
-// Application State
+// Application State - exposed globally for export.js access
 let guests = [];
+let filteredGuests = []; // Store filtered results for pagination
 let editingGuestId = null;
 let totals = {
   total_guests: 0,
@@ -9,6 +10,16 @@ let totals = {
   total_usd: 0,
   cash_total: 0,
 };
+
+// Pagination State
+let currentPage = 1;
+let itemsPerPage = 10;
+let currentSearchTerm = "";
+let currentPaymentFilter = "";
+
+// Expose state globally for export.js to access
+window.guests = guests;
+window.totals = totals;
 
 // Currency Conversion
 const EXCHANGE_RATE = 4000; // 1 USD = 4000 KHR
@@ -127,13 +138,58 @@ function formatKhmerNumber(num) {
   return num.toLocaleString("km-KH");
 }
 
-function showLoading(show = true) {
+// Enhanced loading function with custom messages
+function showLoading(
+  show = true,
+  title = "កំពុងដំណើរការ...",
+  subtitle = "Processing..."
+) {
+  const loadingTitle = document.getElementById("loadingTitle");
+  const loadingSubtitle = document.getElementById("loadingSubtitle");
+
   if (show) {
+    if (loadingTitle) loadingTitle.textContent = title;
+    if (loadingSubtitle) loadingSubtitle.textContent = subtitle;
     elements.loadingOverlay.classList.add("show");
   } else {
     elements.loadingOverlay.classList.remove("show");
   }
 }
+
+// Show table loading skeleton
+function showTableLoading(show = true) {
+  const skeleton = document.getElementById("tableLoadingSkeleton");
+  const table = document.getElementById("guestsTable");
+  const emptyState = document.getElementById("emptyState");
+  const paginationContainer = document.getElementById("paginationContainer");
+
+  if (show) {
+    if (skeleton) skeleton.style.display = "block";
+    if (table) table.style.display = "none";
+    if (emptyState) emptyState.style.display = "none";
+    if (paginationContainer) paginationContainer.style.display = "none";
+  } else {
+    if (skeleton) skeleton.style.display = "none";
+  }
+}
+
+// Button loading state
+function setButtonLoading(button, loading = true) {
+  if (!button) return;
+
+  if (loading) {
+    button.classList.add("loading");
+    button.disabled = true;
+  } else {
+    button.classList.remove("loading");
+    button.disabled = false;
+  }
+}
+
+// Expose showLoading globally for export.js
+window.showLoading = showLoading;
+window.showTableLoading = showTableLoading;
+window.setButtonLoading = setButtonLoading;
 
 function showNotification(message, type = "success", duration = 4000) {
   console.log("Showing notification:", message, type); // Debug log
@@ -202,6 +258,14 @@ function showNotification(message, type = "success", duration = 4000) {
   console.log("Toast notification created and added to DOM"); // Debug log
 }
 
+// Expose showNotification globally for export.js
+window.showNotification = showNotification;
+
+// Expose pagination functions globally for HTML onclick handlers
+window.changePage = changePage;
+window.changeItemsPerPage = changeItemsPerPage;
+window.clearFilters = clearFilters;
+
 // Date Functions
 function updateCurrentDate() {
   const now = new Date();
@@ -224,22 +288,36 @@ function updateCurrentDate() {
 // Data Loading Functions
 async function loadGuests() {
   try {
-    showLoading(true);
+    // Show table skeleton while loading
+    showTableLoading(true);
+
     guests = await ipcRenderer.invoke("get-guests");
+    window.guests = guests; // Sync global reference for export.js
+
+    // Initialize filteredGuests with all guests (apply current filters if any)
+    if (currentSearchTerm || currentPaymentFilter) {
+      filterGuests(currentSearchTerm, currentPaymentFilter);
+    } else {
+      filteredGuests = [...guests];
+      renderGuestsTable();
+      renderPagination();
+    }
+
     await loadTotals();
-    renderGuestsTable();
     updateDashboard();
   } catch (error) {
     console.error("Error loading guests:", error);
     showNotification("Error loading guests: " + error.message, "error");
   } finally {
-    showLoading(false);
+    // Hide table skeleton
+    showTableLoading(false);
   }
 }
 
 async function loadTotals() {
   try {
     totals = await ipcRenderer.invoke("get-totals");
+    window.totals = totals; // Sync global reference for export.js
   } catch (error) {
     console.error("Error loading totals:", error);
   }
@@ -267,20 +345,64 @@ function updateDashboard() {
 }
 
 function renderGuestsTable() {
-  if (guests.length === 0) {
+  // Use filteredGuests for display (includes search/filter results)
+  const displayGuests =
+    filteredGuests.length > 0 || currentSearchTerm || currentPaymentFilter
+      ? filteredGuests
+      : guests;
+  const paginationContainer = document.getElementById("paginationContainer");
+
+  if (displayGuests.length === 0) {
     elements.guestsTable.style.display = "none";
     elements.emptyState.style.display = "block";
+    if (paginationContainer) paginationContainer.style.display = "none";
+
+    // Update empty state message based on whether it's filtered or not
+    if (currentSearchTerm || currentPaymentFilter) {
+      elements.emptyState.innerHTML = `
+        <div class="empty-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <h3>រកមិនឃើញលទ្ធផល</h3>
+        <p>No results found for your search. Try different keywords.</p>
+        <button class="btn btn-primary" onclick="clearFilters()">
+          <i class="fas fa-times"></i>
+          សម្អាតតម្រង
+        </button>
+      `;
+    } else {
+      elements.emptyState.innerHTML = `
+        <div class="empty-icon">
+          <i class="fas fa-users-slash"></i>
+        </div>
+        <h3>មិនទានមៀហ្មានណាមួយទេ</h3>
+        <p>No guests found. Click "Add Guest" to get started.</p>
+        <button class="btn btn-primary" onclick="openGuestModal()">
+          <i class="fas fa-plus"></i>
+          បន្ថែមភ្ញៀវដំបូង
+        </button>
+      `;
+    }
     return;
   }
 
   elements.guestsTable.style.display = "table";
   elements.emptyState.style.display = "none";
+  if (paginationContainer) paginationContainer.style.display = "flex";
 
-  elements.guestsTableBody.innerHTML = guests
+  // Calculate pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedGuests = displayGuests.slice(startIndex, endIndex);
+
+  // Calculate the global index for numbering (continues across pages)
+  const globalStartIndex = startIndex;
+
+  elements.guestsTableBody.innerHTML = paginatedGuests
     .map(
       (guest, index) => `
         <tr class="guest-row" data-id="${guest.id}">
-            <td class="col-index">${index + 1}</td>
+            <td class="col-index">${globalStartIndex + index + 1}</td>
             <td class="col-name">
                 <div class="guest-name">${escapeHtml(
                   guest.name_km || guest.name
@@ -327,7 +449,7 @@ function renderGuestsTable() {
                 <span class="payment-badge ${guest.payment_type.toLowerCase()}">
                     ${
                       guest.payment_type === "CASH"
-                        ? "ប្រាក់សតែង"
+                        ? "សាច់ប្រាក់"
                         : guest.payment_type
                     }
                 </span>
@@ -352,28 +474,177 @@ function renderGuestsTable() {
     .join("");
 }
 
+// Clear all filters
+function clearFilters() {
+  currentSearchTerm = "";
+  currentPaymentFilter = "";
+  currentPage = 1;
+
+  // Reset UI elements
+  if (elements.searchInput) elements.searchInput.value = "";
+  const paymentFilterSelect = document.getElementById("paymentFilterSelect");
+  if (paymentFilterSelect) paymentFilterSelect.value = "";
+
+  filteredGuests = [...guests];
+  renderGuestsTable();
+  renderPagination();
+}
+
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
 
-// Search Functionality
-function filterGuests(searchTerm) {
-  const filtered = guests.filter((guest) => {
+// Search and Filter Functionality
+function filterGuests(
+  searchTerm = currentSearchTerm,
+  paymentFilter = currentPaymentFilter
+) {
+  // Store current filter values
+  currentSearchTerm = searchTerm;
+  currentPaymentFilter = paymentFilter;
+
+  // Reset to first page when filters change
+  currentPage = 1;
+
+  // Apply filters
+  filteredGuests = guests.filter((guest) => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+
+    // Search filter - check name (en), name_km, phone, and note
+    const matchesSearch =
+      !searchTerm ||
       guest.name.toLowerCase().includes(searchLower) ||
+      (guest.name_km && guest.name_km.includes(searchTerm)) || // Direct match for Khmer text
       (guest.phone && guest.phone.includes(searchTerm)) ||
-      (guest.note && guest.note.toLowerCase().includes(searchLower))
-    );
+      (guest.note && guest.note.toLowerCase().includes(searchLower));
+
+    // Payment type filter
+    const matchesPayment =
+      !paymentFilter || guest.payment_type === paymentFilter;
+
+    return matchesSearch && matchesPayment;
   });
 
-  // Temporarily replace guests array for rendering
-  const originalGuests = guests;
-  guests = filtered;
   renderGuestsTable();
-  guests = originalGuests;
+  renderPagination();
+}
+
+// Change page
+function changePage(page) {
+  const totalPages = Math.ceil(filteredGuests.length / itemsPerPage);
+  if (page < 1 || page > totalPages) return;
+
+  currentPage = page;
+  renderGuestsTable();
+  renderPagination();
+
+  // Scroll to top of table
+  const tableSection = document.querySelector(".table-section");
+  if (tableSection) {
+    tableSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+// Change items per page
+function changeItemsPerPage(newItemsPerPage) {
+  itemsPerPage = parseInt(newItemsPerPage);
+  currentPage = 1; // Reset to first page
+  renderGuestsTable();
+  renderPagination();
+}
+
+// Render pagination controls
+function renderPagination() {
+  const paginationContainer = document.getElementById("paginationContainer");
+  if (!paginationContainer) return;
+
+  const totalItems = filteredGuests.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  // Generate page numbers with ellipsis for large page counts
+  let pageNumbers = [];
+  if (totalPages <= 7) {
+    pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+  } else {
+    if (currentPage <= 4) {
+      pageNumbers = [1, 2, 3, 4, 5, "...", totalPages];
+    } else if (currentPage >= totalPages - 3) {
+      pageNumbers = [
+        1,
+        "...",
+        totalPages - 4,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ];
+    } else {
+      pageNumbers = [
+        1,
+        "...",
+        currentPage - 1,
+        currentPage,
+        currentPage + 1,
+        "...",
+        totalPages,
+      ];
+    }
+  }
+
+  paginationContainer.innerHTML = `
+    <div class="pagination-info">
+      <span class="pagination-showing">
+        បង្ហាញ <strong>${startItem}</strong> - <strong>${endItem}</strong> ពី <strong>${totalItems}</strong> កំណត់ត្រា
+      </span>
+      <div class="pagination-per-page">
+        <label>បង្ហាញ:</label>
+        <select id="itemsPerPageSelect" onchange="changeItemsPerPage(this.value)">
+          <option value="10" ${
+            itemsPerPage === 10 ? "selected" : ""
+          }>10</option>
+          <option value="25" ${
+            itemsPerPage === 25 ? "selected" : ""
+          }>25</option>
+          <option value="50" ${
+            itemsPerPage === 50 ? "selected" : ""
+          }>50</option>
+          <option value="100" ${
+            itemsPerPage === 100 ? "selected" : ""
+          }>100</option>
+        </select>
+      </div>
+    </div>
+    <div class="pagination-controls">
+      <button class="pagination-btn pagination-prev" onclick="changePage(${
+        currentPage - 1
+      })" ${currentPage === 1 ? "disabled" : ""}>
+        <i class="fas fa-chevron-left"></i>
+        មុន
+      </button>
+      <div class="pagination-pages">
+        ${pageNumbers
+          .map((page) => {
+            if (page === "...") {
+              return '<span class="pagination-ellipsis">...</span>';
+            }
+            return `<button class="pagination-page ${
+              page === currentPage ? "active" : ""
+            }" onclick="changePage(${page})">${page}</button>`;
+          })
+          .join("")}
+      </div>
+      <button class="pagination-btn pagination-next" onclick="changePage(${
+        currentPage + 1
+      })" ${currentPage === totalPages || totalPages === 0 ? "disabled" : ""}>
+        បន្ទាប់
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  `;
 }
 
 // Modal Functions
@@ -445,15 +716,20 @@ function closeGuestModal() {
 // CRUD Operations
 async function saveGuest(guestData) {
   try {
-    showLoading(true);
+    // Set button loading state
+    setButtonLoading(elements.saveGuestBtn, true);
 
     if (editingGuestId) {
+      // Show loading with update message
+      showLoading(true, "កំពុងកែប្រែ...", "Updating guest...");
       // Update existing guest
       await ipcRenderer.invoke("update-guest", editingGuestId, guestData);
       showNotification("កែប្រែមេហ្មានបានជោគជ័យ!");
       await loadGuests();
       closeGuestModal(); // Close modal after editing
     } else {
+      // Show loading with add message
+      showLoading(true, "កំពុងបន្ថែម...", "Adding new guest...");
       // Add new guest
       await ipcRenderer.invoke("add-guest", guestData);
       showNotification(
@@ -492,6 +768,7 @@ async function saveGuest(guestData) {
     showNotification("Error saving guest: " + error.message, "error");
   } finally {
     showLoading(false);
+    setButtonLoading(elements.saveGuestBtn, false);
   }
 }
 
@@ -507,7 +784,7 @@ async function deleteGuest(guestId) {
   if (!confirmed) return;
 
   try {
-    showLoading(true);
+    showLoading(true, "កំពុងលុប...", "Deleting guest...");
     await ipcRenderer.invoke("delete-guest", guestId);
     showNotification(
       `ភ្ញៀវ "${guest.name}" ត្រូវបានលុបចេញពីបញ្ជីរួចរាល់`,
@@ -537,19 +814,53 @@ function setupEventListeners() {
     console.error("addGuestBtn element not found!");
   }
 
-  // Search input
+  // Search input with debounce for better performance
+  let searchTimeout;
   if (elements.searchInput) {
     elements.searchInput.addEventListener("input", (e) => {
-      filterGuests(e.target.value);
+      clearTimeout(searchTimeout);
+      // Add loading class to search container
+      const searchContainer = elements.searchInput.closest(".search-container");
+      if (searchContainer) searchContainer.classList.add("loading");
+
+      searchTimeout = setTimeout(() => {
+        filterGuests(e.target.value, currentPaymentFilter);
+        // Remove loading class after search
+        if (searchContainer) searchContainer.classList.remove("loading");
+      }, 300);
+    });
+  }
+
+  // Payment type filter
+  const paymentFilterSelect = document.getElementById("paymentFilterSelect");
+  if (paymentFilterSelect) {
+    paymentFilterSelect.addEventListener("change", (e) => {
+      filterGuests(currentSearchTerm, e.target.value);
     });
   }
 
   // Export buttons
   if (elements.exportExcelBtn) {
-    elements.exportExcelBtn.addEventListener("click", () => exportToExcel());
+    elements.exportExcelBtn.addEventListener("click", () => {
+      console.log("Export Excel button clicked");
+      if (typeof window.exportToExcel === "function") {
+        window.exportToExcel();
+      } else {
+        console.error("exportToExcel function not found");
+        showNotification("Export function not available", "error");
+      }
+    });
   }
   if (elements.exportPdfBtn) {
-    elements.exportPdfBtn.addEventListener("click", () => exportToPDF());
+    elements.exportPdfBtn.addEventListener("click", () => {
+      console.log("Export PDF button clicked");
+      if (typeof window.exportToPDF === "function") {
+        window.exportToPDF();
+      } else {
+        console.error("exportToPDF function not found");
+        showNotification("Export function not available", "error");
+      }
+    });
   }
   if (elements.printBtn) {
     elements.printBtn.addEventListener("click", () => window.print());
@@ -648,11 +959,15 @@ function setupEventListeners() {
   });
 
   ipcRenderer.on("export-excel", () => {
-    exportToExcel();
+    if (typeof window.exportToExcel === "function") {
+      window.exportToExcel();
+    }
   });
 
   ipcRenderer.on("export-pdf", () => {
-    exportToPDF();
+    if (typeof window.exportToPDF === "function") {
+      window.exportToPDF();
+    }
   });
 }
 
@@ -2301,6 +2616,7 @@ function setupInvitationGuestsListeners() {
       filteredInvitationGuests = invitationGuests.filter(
         (g) =>
           g.name.toLowerCase().includes(query) ||
+          g.name_km.includes(e.target.value) ||
           (g.phone && g.phone.includes(query)) ||
           (g.email && g.email.toLowerCase().includes(query))
       );

@@ -188,7 +188,7 @@ function generatePDFHTML() {
                     <span class="payment-badge ${guest.payment_type.toLowerCase()}">
                         ${
                           guest.payment_type === "CASH"
-                            ? "ប្រាក់សតែង"
+                            ? "សាច់ប្រាក់"
                             : guest.payment_type
                         }
                     </span>
