@@ -855,6 +855,23 @@
       </div>
     </div>
 
+    <footer
+      class="footer"
+      style="
+        text-align: center;
+        margin: 2rem 0 1rem 0;
+        color: #888;
+        font-size: 0.95rem;
+      "
+    >
+      Author: Din Somnang &copy; <span id="footerYear"></span>, Product:
+      <a
+        href="https://www.facebook.com/share/17qUUKzKcy/?mibextid=wwXIfr"
+        id="externalLink"
+        >Click2Order</a
+      >
+    </footer>
+
     <script src="app.js"></script>
     <script
       src="export.js"
@@ -863,6 +880,8 @@
     <script>
       // Verify export functions are loaded
       window.addEventListener("load", function () {
+        document.getElementById("footerYear").textContent =
+          new Date().getFullYear();
         console.log("Window loaded. Export functions available:", {
           exportToExcel: typeof window.exportToExcel,
           exportToPDF: typeof window.exportToPDF,

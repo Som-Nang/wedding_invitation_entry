@@ -103,6 +103,7 @@ const elements = {
 
   // Form fields
   guestName: document.getElementById("guestName"),
+  guestNameKm: document.getElementById("guestNameKm"),
   guestPhone: document.getElementById("guestPhone"),
   guestNote: document.getElementById("guestNote"),
   guestAmount: document.getElementById("guestAmount"),
@@ -657,6 +658,7 @@ function openGuestModal(guestId = null) {
     if (guest) {
       elements.modalTitle.textContent = "កែប្រែមេហ្មាន";
       elements.guestName.value = guest.name;
+      elements.guestNameKm.value = guest.name_km || "";
       elements.guestPhone.value = guest.phone || "";
       elements.guestNote.value = guest.note || "";
       elements.guestAmount.value = guest.amount;
@@ -2674,3 +2676,9 @@ function setupInvitationGuestsListeners() {
     });
   }
 }
+
+const { shell } = require("electron");
+document.getElementById("externalLink").addEventListener("click", function (e) {
+  e.preventDefault();
+  shell.openExternal(this.href);
+});
