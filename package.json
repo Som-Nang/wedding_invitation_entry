@@ -15,9 +15,11 @@
     "author": "Wedding Manager",
     "license": "MIT",
     "devDependencies": {
+        "assert": "^2.1.0",
         "electron": "29.4.6",
         "electron-builder": "^24.13.3",
-        "electron-rebuild": "^3.2.9"
+        "electron-rebuild": "^3.2.9",
+        "mocha": "^11.7.5"
     },
     "dependencies": {
         "better-sqlite3": "^12.6.0",
