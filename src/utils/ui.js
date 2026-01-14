@@ -60,7 +60,11 @@ function showNotification(message, type = "success", duration = 4000) {
   }, duration);
 }
 
-function showLoading(show = true, title = "កំពុងដំណើរការ...", subtitle = "Processing...") {
+function showLoading(
+  show = true,
+  title = "កំពុងដំណើរការ...",
+  subtitle = "Processing..."
+) {
   const loadingTitle = document.getElementById("loadingTitle");
   const loadingSubtitle = document.getElementById("loadingSubtitle");
   const loadingOverlay = document.getElementById("loadingOverlay");
